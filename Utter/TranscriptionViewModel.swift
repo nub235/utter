@@ -33,7 +33,7 @@ struct TranscriptionUiState {
 
 @Observable class TranscriptionViewModel {
     private let recorder: AudioRecorder = .init()
-    private let asrManager = AsrManager(config: .default)
+    private let asrManager = UnifiedAsrManager(encoderPrecision: .int8)
     private let modelContext: ModelContext
     private var hotKeyRegistrationState: HotKeyRegistrationStateMachine = .init()
 
@@ -49,8 +49,7 @@ struct TranscriptionUiState {
         uiState.isDownloadingAndLoadingModels = true
         
         Task {
-            let models = try await AsrModels.downloadAndLoad(version: .v2) 
-            try await asrManager.loadModels(models)
+            try await asrManager.loadModels()
             
             await MainActor.run {
                 refreshHistory()
@@ -138,18 +137,17 @@ struct TranscriptionUiState {
     private func stopRecording() {
         if recorder.isRunning, let audioBuffer = recorder.stopAndGetBuffer() {
             Task {
-                var decoderState = try TdtDecoderState()
-                let result = try await asrManager.transcribe(audioBuffer, decoderState: &decoderState)
+                let result = try await asrManager.transcribe(audioBuffer)
                 
                 print("Transcription: \(result)")
-                if (result.text.trimmingCharacters(in: .whitespacesAndNewlines)).isEmpty {
+                if (result.trimmingCharacters(in: .whitespacesAndNewlines)).isEmpty {
                     print("empty transcription, returning...")
                     return
                 }
                 
-                copyToPasteboard(text: result.text)
+                copyToPasteboard(text: result)
                 simulatePaste()
-                let newTranscription = Transcription(timestamp: Date(), text: result.text)
+                let newTranscription = Transcription(timestamp: Date(), text: result)
                 modelContext.insert(newTranscription)
                 refreshHistory()
             }
