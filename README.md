@@ -13,7 +13,7 @@ Press a hotkey, speak, automatically paste the transcription into the active app
 - Offline**, Local, and private
 - English-only for now
 
-** On first time use the app will download the Parakeet speech models from Hugging Face.
+** On first time use the app will download the Parakeet Unified speech models from Hugging Face.
 
 ### Setup
 - The app will request accessibility permissions in order to listen for a global hotkey.  Restart the app after granting.

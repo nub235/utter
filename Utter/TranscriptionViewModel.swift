@@ -11,6 +11,11 @@ import AVFoundation
 import AppKit
 import SwiftData
 
+enum RecordingMode: String, CaseIterable {
+    case hold
+    case toggle
+}
+
 enum TranscriptionEvent {
     case restartAppPressed
     case hotkeyPressed
@@ -20,6 +25,7 @@ enum TranscriptionEvent {
     case registerHotkeyFocused
     case registerHotkeyFocusOut
     case hotkeyRegistrationEventFired(event: HotkeyRegistrationEvent)
+    case recordingModeChanged(RecordingMode)
 }
 
 struct TranscriptionUiState {
@@ -29,6 +35,7 @@ struct TranscriptionUiState {
     var isHotKeyPressed: Bool = false
     var transcriptions: [Transcription] = []
     var isDownloadingAndLoadingModels: Bool = false
+    var recordingMode: RecordingMode = .hold
 }
 
 @Observable class TranscriptionViewModel {
@@ -81,9 +88,21 @@ struct TranscriptionUiState {
     func handleEvent(_ event: TranscriptionEvent) {
         switch event {
         case .hotkeyPressed:
-            uiState.isHotKeyPressed = true
-            startRecording()
+            switch uiState.recordingMode {
+            case .hold:
+                uiState.isHotKeyPressed = true
+                startRecording()
+            case .toggle:
+                if uiState.isHotKeyPressed {
+                    uiState.isHotKeyPressed = false
+                    stopRecording()
+                } else {
+                    uiState.isHotKeyPressed = true
+                    startRecording()
+                }
+            }
         case .hotkeyReleased:
+            guard uiState.recordingMode == .hold else { return }
             uiState.isHotKeyPressed = false
             stopRecording()
         case .historyEntryClicked(entry: let entry):
@@ -105,6 +124,13 @@ struct TranscriptionUiState {
             uiState.isRegisteringHotKey = false
         case .restartAppPressed:
             restartApp()
+        case .recordingModeChanged(let mode):
+            if uiState.isHotKeyPressed {
+                uiState.isHotKeyPressed = false
+                stopRecording()
+            }
+            uiState.recordingMode = mode
+            UserDefaults.standard.set(mode.rawValue, forKey: "recordingMode")
         }
     }
     
@@ -221,6 +247,11 @@ struct TranscriptionUiState {
 
         hotKeyRegistrationState.currentState = .registered(modifier, NonModifierKey(keyCode: keyCode, character: character))
         uiState.hotKey = modifier.display() + character.uppercased()
+        
+        if let modeRaw = UserDefaults.standard.string(forKey: "recordingMode"),
+           let mode = RecordingMode(rawValue: modeRaw) {
+            uiState.recordingMode = mode
+        }
     }
     
     func restartApp() {
