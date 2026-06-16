@@ -115,11 +115,6 @@ struct MainMenuContent: View {
             }
             .padding(.horizontal, 8)
             
-            RecordingModeMenu(
-                currentMode: uiState.recordingMode,
-                onModeChanged: { onEvent(.recordingModeChanged($0)) }
-            )
-            
             Divider().padding(.horizontal, 8)
             
             Button {
@@ -205,40 +200,6 @@ struct HistoryMenu: View {
             HStack {
                 Text("History")
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 10, height: 10)
-                    .fontWeight(.bold)
-            }
-        }
-    }
-}
-
-struct RecordingModeMenu: View {
-    let currentMode: RecordingMode
-    let onModeChanged: (RecordingMode) -> Void
-
-    var body: some View {
-        Menu {
-            ForEach(RecordingMode.allCases, id: \.self) { mode in
-                Button {
-                    onModeChanged(mode)
-                } label: {
-                    HStack {
-                        Text(mode == .hold ? "Hold" : "Toggle")
-                        if mode == currentMode {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-            }
-        } label: {
-            HStack {
-                Text("Mode")
-                Spacer()
-                Text(currentMode == .hold ? "Hold" : "Toggle")
-                    .foregroundColor(.secondary)
                 Image(systemName: "chevron.right")
                     .resizable()
                     .aspectRatio(contentMode: .fit)

@@ -11,11 +11,6 @@ import AVFoundation
 import AppKit
 import SwiftData
 
-enum RecordingMode: String, CaseIterable {
-    case hold
-    case toggle
-}
-
 enum TranscriptionEvent {
     case restartAppPressed
     case hotkeyPressed
@@ -25,7 +20,6 @@ enum TranscriptionEvent {
     case registerHotkeyFocused
     case registerHotkeyFocusOut
     case hotkeyRegistrationEventFired(event: HotkeyRegistrationEvent)
-    case recordingModeChanged(RecordingMode)
 }
 
 struct TranscriptionUiState {
@@ -35,7 +29,6 @@ struct TranscriptionUiState {
     var isHotKeyPressed: Bool = false
     var transcriptions: [Transcription] = []
     var isDownloadingAndLoadingModels: Bool = false
-    var recordingMode: RecordingMode = .hold
 }
 
 @Observable class TranscriptionViewModel {
@@ -43,6 +36,8 @@ struct TranscriptionUiState {
     private let asrManager = UnifiedAsrManager(encoderPrecision: .int8)
     private let modelContext: ModelContext
     private var hotKeyRegistrationState: HotKeyRegistrationStateMachine = .init()
+    private var pressStartTime: Date?
+    private let toggleThreshold: TimeInterval = 0.3
 
     var uiState: TranscriptionUiState = .init()
 
@@ -88,23 +83,23 @@ struct TranscriptionUiState {
     func handleEvent(_ event: TranscriptionEvent) {
         switch event {
         case .hotkeyPressed:
-            switch uiState.recordingMode {
-            case .hold:
+            if uiState.isHotKeyPressed {
+                uiState.isHotKeyPressed = false
+                pressStartTime = nil
+                stopRecording()
+            } else {
                 uiState.isHotKeyPressed = true
+                pressStartTime = Date()
                 startRecording()
-            case .toggle:
-                if uiState.isHotKeyPressed {
-                    uiState.isHotKeyPressed = false
-                    stopRecording()
-                } else {
-                    uiState.isHotKeyPressed = true
-                    startRecording()
-                }
             }
         case .hotkeyReleased:
-            guard uiState.recordingMode == .hold else { return }
-            uiState.isHotKeyPressed = false
-            stopRecording()
+            guard uiState.isHotKeyPressed, let startTime = pressStartTime else { return }
+            let duration = Date().timeIntervalSince(startTime)
+            pressStartTime = nil
+            if duration >= toggleThreshold {
+                uiState.isHotKeyPressed = false
+                stopRecording()
+            }
         case .historyEntryClicked(entry: let entry):
             insertHistoryEntry(entry)
         case .historyClearClicked:
@@ -124,13 +119,6 @@ struct TranscriptionUiState {
             uiState.isRegisteringHotKey = false
         case .restartAppPressed:
             restartApp()
-        case .recordingModeChanged(let mode):
-            if uiState.isHotKeyPressed {
-                uiState.isHotKeyPressed = false
-                stopRecording()
-            }
-            uiState.recordingMode = mode
-            UserDefaults.standard.set(mode.rawValue, forKey: "recordingMode")
         }
     }
     
@@ -247,11 +235,6 @@ struct TranscriptionUiState {
 
         hotKeyRegistrationState.currentState = .registered(modifier, NonModifierKey(keyCode: keyCode, character: character))
         uiState.hotKey = modifier.display() + character.uppercased()
-        
-        if let modeRaw = UserDefaults.standard.string(forKey: "recordingMode"),
-           let mode = RecordingMode(rawValue: modeRaw) {
-            uiState.recordingMode = mode
-        }
     }
     
     func restartApp() {
