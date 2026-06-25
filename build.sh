@@ -4,7 +4,7 @@ set -e
 APP_NAME="Utter"
 BUILD_DIR="build"
 SCHEME="Utter"
-CONFIG="Debug"
+CONFIG="Release"
 
 echo "Building $APP_NAME..."
 xcodebuild -scheme "$SCHEME" \
