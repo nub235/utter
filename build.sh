@@ -17,7 +17,7 @@ xcodebuild -scheme "$SCHEME" \
     build
 
 APP_PATH="$BUILD_DIR/Build/Products/$CONFIG/$APP_NAME.app"
-ZIP_PATH="$BUILD_DIR/Build/Products/$CONFIG/$APP_NAME.zip"
+DMG_PATH="$BUILD_DIR/Build/Products/$CONFIG/$APP_NAME.dmg"
 
 echo "Signing..."
 codesign --deep --sign - "$APP_PATH"
@@ -25,9 +25,13 @@ codesign --deep --sign - "$APP_PATH"
 echo "Setting permissions..."
 chmod +x "$APP_PATH/Contents/MacOS/$APP_NAME"
 
-echo "Packaging..."
-cd "$BUILD_DIR/Build/Products/$CONFIG"
-ditto -c -k --sequesterRsrc --keepParent "$APP_NAME.app" "$APP_NAME.zip"
-cd -
+echo "Packaging DMG..."
+rm -f "$DMG_PATH"
+hdiutil create \
+    -volname "$APP_NAME" \
+    -srcfolder "$APP_PATH" \
+    -ov \
+    -format UDZO \
+    "$DMG_PATH"
 
-echo "Done: $ZIP_PATH"
+echo "Done: $DMG_PATH"
