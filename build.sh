@@ -27,11 +27,17 @@ chmod +x "$APP_PATH/Contents/MacOS/$APP_NAME"
 
 echo "Packaging DMG..."
 rm -f "$DMG_PATH"
+STAGING_DIR="$BUILD_DIR/dmg-staging"
+rm -rf "$STAGING_DIR"
+mkdir -p "$STAGING_DIR"
+cp -R "$APP_PATH" "$STAGING_DIR/"
+ln -s /Applications "$STAGING_DIR/Applications"
 hdiutil create \
     -volname "$APP_NAME" \
-    -srcfolder "$APP_PATH" \
+    -srcfolder "$STAGING_DIR" \
     -ov \
     -format UDZO \
     "$DMG_PATH"
+rm -rf "$STAGING_DIR"
 
 echo "Done: $DMG_PATH"
