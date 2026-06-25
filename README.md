@@ -16,6 +16,7 @@ Press a hotkey, speak, automatically paste the transcription into the active app
 ** On first time use the app will download the Parakeet Unified speech models from Hugging Face.
 
 ### Setup
+- **First launch:** macOS will block the app because it is not signed with a Developer ID. Go to **System Settings → Privacy & Security → Security** and click **Open Anyway** next to the Utter message.
 - The app will request accessibility permissions in order to listen for a global hotkey.  Restart the app after granting.
 - Click the menu item hotkey field to register a hotkey.
 - The app will request microphone permissions on first use.
